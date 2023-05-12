@@ -3,17 +3,17 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-import adafruit_requests
-import adafruit_json_stream as json_stream
-import socketpool
 import ssl
-import wifi
 import time
+import adafruit_requests
+import socketpool
+import wifi
+import adafruit_json_stream as json_stream
 
 pool = socketpool.SocketPool(wifi.radio)
 session = adafruit_requests.Session(pool, ssl.create_default_context())
 
-SCORE_URL = f"http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+SCORE_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
 
 while True:
     resp = session.get(SCORE_URL)
@@ -24,4 +24,5 @@ while True:
         for competition in event["competitions"]:
             for competitor in competition["competitors"]:
                 print(competitor["team"]["displayName"], competitor["score"])
+    resp.close()
     time.sleep(60)

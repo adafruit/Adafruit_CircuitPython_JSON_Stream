@@ -1,6 +1,13 @@
-# import adafruit_json_stream as json_stream
-import json_stream
+# SPDX-FileCopyrightText: Copyright (c) 2023 Scott Shawcroft for Adafruit Industries
+#
+# SPDX-License-Identifier: Unlicense
+
 import sys
+
+import adafruit_json_stream as json_stream
+
+# import json_stream
+
 
 class FakeResponse:
     def __init__(self, file):
@@ -10,7 +17,8 @@ class FakeResponse:
         while True:
             yield self.file.read(chunk_size)
 
-f = open(sys.argv[1], "rb")
+
+f = open(sys.argv[1], "rb")  # pylint: disable=consider-using-with
 obj = json_stream.load(FakeResponse(f).iter_content(32))
 
 currently = obj["currently"]
