@@ -22,7 +22,7 @@ Introduction
     :alt: Code Style: Black
 
 
-This library is a reimplementation and subset of `json_stream <https://github.com/daggaz/json-stream>`_. It enables reading JSON data from a stream rather that loading it all into memory at once. The interface works like lists and dictionaries that are usually returned from `json.load()` but require in-order access. Out of order accesses will lead to missing keys and list entries.
+This library is a reimplementation and subset of `json_stream <https://github.com/daggaz/json-stream>`_. It enables reading JSON data from a stream rather that loading it all into memory at once. The interface works like lists and dictionaries that are usually returned from ``json.load()`` but require in-order access. Out of order accesses will lead to missing keys and list entries.
 
 
 Dependencies
