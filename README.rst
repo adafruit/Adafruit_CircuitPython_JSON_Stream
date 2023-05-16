@@ -22,7 +22,7 @@ Introduction
     :alt: Code Style: Black
 
 
-.. todo:: Describe what the library does.
+This library is a reimplementation and subset of `json_stream <https://github.com/daggaz/json-stream>`_. It enables reading JSON data from a stream rather that loading it all into memory at once. The interface works like lists and dictionaries that are usually returned from ``json.load()`` but require in-order access. Out of order accesses will lead to missing keys and list entries.
 
 
 Dependencies
@@ -37,39 +37,11 @@ This is easily achieved by downloading
 or individual libraries can be installed using
 `circup <https://github.com/adafruit/circup>`_.
 
-.. todo:: Describe the Adafruit product this library works with. For PCBs, you can also add the
-image from the assets folder in the PCB's GitHub repo.
-
-`Purchase one from the Adafruit shop <http://www.adafruit.com/products/>`_
 Installing from PyPI
 =====================
-.. note:: This library is not available on PyPI yet. Install documentation is included
-   as a standard element. Stay tuned for PyPI availability!
 
-.. todo:: Remove the above note if PyPI version is/will be available at time of release.
-
-On supported GNU/Linux systems like the Raspberry Pi, you can install the driver locally `from
-PyPI <https://pypi.org/project/adafruit-circuitpython-json-stream/>`_.
-To install for current user:
-
-.. code-block:: shell
-
-    pip3 install adafruit-circuitpython-json-stream
-
-To install system-wide (this may be required in some cases):
-
-.. code-block:: shell
-
-    sudo pip3 install adafruit-circuitpython-json-stream
-
-To install in a virtual environment in your current project:
-
-.. code-block:: shell
-
-    mkdir project-name && cd project-name
-    python3 -m venv .venv
-    source .env/bin/activate
-    pip3 install adafruit-circuitpython-json-stream
+This library is on PyPI for editors that use it for CircuitPython. In CPython,
+it is recommended to use `json_stream <https://github.com/daggaz/json-stream>`_ itself.
 
 Installing to a Connected CircuitPython Device with Circup
 ==========================================================
@@ -97,8 +69,31 @@ Or the following command to update an existing version:
 Usage Example
 =============
 
-.. todo:: Add a quick, simple example. It and other examples should live in the
-examples folder and be included in docs/examples.rst.
+.. code-block:: python
+
+    import ssl
+    import time
+    import adafruit_requests
+    import socketpool
+    import wifi
+    import adafruit_json_stream as json_stream
+
+    pool = socketpool.SocketPool(wifi.radio)
+    session = adafruit_requests.Session(pool, ssl.create_default_context())
+
+    SCORE_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+
+    while True:
+        resp = session.get(SCORE_URL)
+        json_data = json_stream.load(resp.iter_content(32))
+        for event in json_data["events"]:
+            if "Seattle" not in event["name"]:
+                continue
+            for competition in event["competitions"]:
+                for competitor in competition["competitors"]:
+                    print(competitor["team"]["displayName"], competitor["score"])
+        resp.close()
+        time.sleep(60)
 
 Documentation
 =============
