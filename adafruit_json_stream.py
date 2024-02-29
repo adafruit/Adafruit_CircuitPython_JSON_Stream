@@ -76,11 +76,11 @@ class _IterToStream:
                 char = self.read()
             except EOFError:
                 char = endswith
-            if char == endswith or (not in_string and char in (ord("]"), ord("}"))):
+            if not in_string and (char == endswith or char in (ord("]"), ord("}"))):
                 if len(buf) == 0:
                     return None
                 value_string = bytes(buf).decode("utf-8")
-                # print(repr(value_string))
+                # print(f"{repr(value_string)}, {endswith=}")
                 return json.loads(value_string)
             if char == ord("{"):
                 return TransientObject(self)
