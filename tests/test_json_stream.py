@@ -22,22 +22,22 @@ class BytesChunkIO:
         self.chunks_read = 0
         self.data = data
         self.data_len = len(self.data)
-        self.poition = 0
+        self.position = 0
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if self.poition > self.data_len:
+        if self.position > self.data_len:
             raise StopIteration
 
         end = self.chunk_size
-        if self.poition + end > self.data_len:
+        if self.position + end > self.data_len:
             end = self.data_len
-        chunk = self.data[self.poition : self.poition + self.chunk_size]
+        chunk = self.data[self.position : self.position + self.chunk_size]
 
         self.chunks_read += 1
-        self.poition += self.chunk_size
+        self.position += self.chunk_size
 
         return chunk
 
@@ -54,6 +54,7 @@ class BytesChunkIO:
 def dict_with_all_types():
     return """
     {
+        "_check": "{\\\"a\\\": 1, \\\"b\\\": [2,3]}",
         "bool": true,
         "dict": {"key": "value"},
         "float": 1.1,
@@ -341,6 +342,28 @@ def test_complex_dict_passed_key_raises(complex_dict):
         stream["obects_id"]
 
 
+def test_complex_dict_passed_reference_raises(complex_dict):
+    """
+    Test loading a complex dict and attempting to grab a data from a saved reference that has
+    been passed raises.
+    """
+
+    assert json.loads(complex_dict)
+
+    stream = adafruit_json_stream.load(BytesChunkIO(complex_dict.encode()))
+
+    list_1 = stream["list_1"]
+    dict_1 = next(list_1)
+    sub_dict = dict_1["sub_dict"]
+    sub_list = dict_1["sub_list"]
+    list_2 = stream["list_2"]
+    next(list_2)
+    with pytest.raises(KeyError, match="sub_dict_id"):
+        sub_dict["sub_dict_id"]
+    with pytest.raises(StopIteration):
+        next(sub_list)
+
+
 # complex_dict is 1518 bytes
 @pytest.mark.parametrize(
     ("chunk_size", "expected_chunks"), ((10, 152), (50, 31), (100, 16), (5000, 1))
@@ -456,7 +479,9 @@ def test_as_object_stream(dict_with_all_types):
 
     stream = adafruit_json_stream.load(BytesChunkIO(dict_with_all_types.encode()))
 
-    assert stream.as_object() == {
+    obj = stream.as_object()
+    assert obj == {
+        "_check": '{"a": 1, "b": [2,3]}',
         "bool": True,
         "dict": {"key": "value"},
         "float": 1.1,
@@ -464,6 +489,13 @@ def test_as_object_stream(dict_with_all_types):
         "list": [1, 2, 3],
         "null": None,
         "string": "string",
+    }
+    assert json.loads(obj["_check"]) == {
+        "a": 1,
+        "b": [
+            2,
+            3,
+        ],
     }
 
 

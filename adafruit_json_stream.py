@@ -197,7 +197,7 @@ class TransientObject(Transient):
                 break
             if current_key == key:
                 next_value = self.data.next_value(",")
-                if self.data.last_char in [ord("}"), ord("]")]:
+                if self.data.last_char == ord("}"):
                     self.done = True
                 if isinstance(next_value, Transient):
                     self.active_child = next_value
