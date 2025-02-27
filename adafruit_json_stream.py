@@ -174,14 +174,19 @@ class TransientObject(Transient):
         super().__init__(stream)
         self.finish_char = "}"
         self.start_char = "{"
+        self.active_child_key = None
 
     def __getitem__(self, key):
+        if self.active_child and self.active_child_key == key:
+            return self.active_child
+
         self.has_read = True
 
         if self.active_child:
             self.active_child.finish()
             self.done = self.data.fast_forward(",")
             self.active_child = None
+            self.active_child_key = None
         if self.done:
             raise KeyError(key)
 
@@ -196,6 +201,7 @@ class TransientObject(Transient):
                     self.done = True
                 if isinstance(next_value, Transient):
                     self.active_child = next_value
+                    self.active_child_key = key
                 return next_value
             self.done = self.data.fast_forward(",")
         raise KeyError(key)

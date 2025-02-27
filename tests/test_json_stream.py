@@ -481,8 +481,8 @@ def test_as_object_that_is_partially_read_raises(complex_dict):
         dict_1.as_object()
 
 
-def test_as_object_grabbing_multiple_subscriptable_levels_twice_raises(complex_dict):
-    """Test loading a complex dict and grabbing multiple subscriptable levels twice raises."""
+def test_as_object_grabbing_multiple_subscriptable_levels_twice(complex_dict):
+    """Test loading a complex dict and grabbing multiple subscriptable levels twice."""
 
     assert json.loads(complex_dict)
 
@@ -491,5 +491,23 @@ def test_as_object_grabbing_multiple_subscriptable_levels_twice_raises(complex_d
     list_1 = stream["list_1"]
     dict_1 = next(list_1)
     assert dict_1["sub_dict"]["sub_dict_id"] == 1.1
+    assert dict_1["sub_dict"]["sub_dict_name"] == "one point one"
+
+
+def test_as_object_grabbing_multiple_subscriptable_levels_again_after_passed_raises(
+    complex_dict,
+):
+    """
+    Test loading a complex dict and grabbing multiple subscriptable levels after passing it raises.
+    """
+
+    assert json.loads(complex_dict)
+
+    stream = adafruit_json_stream.load(BytesChunkIO(complex_dict.encode()))
+
+    list_1 = stream["list_1"]
+    dict_1 = next(list_1)
+    assert dict_1["sub_dict"]["sub_dict_id"] == 1.1
+    assert next(dict_1["sub_list"]) == "a"
     with pytest.raises(KeyError, match="sub_dict"):
         dict_1["sub_dict"]["sub_dict_name"]
