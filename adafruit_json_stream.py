@@ -40,7 +40,7 @@ class _IterToStream:
         self.i += 1
         return char
 
-    def fast_forward(self, closer, buffer=None):
+    def fast_forward(self, closer, *, return_object=False):
         """Read through the stream until the character is ``closer``, ``]``
         (ending a list) or ``}`` (ending an object.) Intermediate lists and
         objects are skipped."""
@@ -48,6 +48,14 @@ class _IterToStream:
         closer = ord(closer)
         close_stack = [closer]
         count = 0
+
+        buffer = None
+        if return_object:
+            buffer = bytearray(32)
+            # ] = 93, [ = 91
+            # } = 125, { = 123
+            buffer[0] = closer - 2
+
         while close_stack:
             char = self.read()
             count += 1
@@ -114,7 +122,6 @@ class Transient:
         self.done = False
         self.has_read = False
         self.finish_char = ""
-        self.start_char = ""
 
     def finish(self):
         """Consume all of the characters for this list from the stream."""
@@ -130,10 +137,8 @@ class Transient:
         if self.has_read:
             raise BufferError("Object has already been partly read.")
 
-        buffer = bytearray(32)
-        buffer[0] = ord(self.start_char)
         self.done = True
-        return self.data.fast_forward(self.finish_char, buffer)
+        return self.data.fast_forward(self.finish_char, return_object=True)
 
 
 class TransientList(Transient):
@@ -142,7 +147,6 @@ class TransientList(Transient):
     def __init__(self, stream):
         super().__init__(stream)
         self.finish_char = "]"
-        self.start_char = "["
 
     def __iter__(self):
         return self
@@ -173,7 +177,6 @@ class TransientObject(Transient):
     def __init__(self, stream):
         super().__init__(stream)
         self.finish_char = "}"
-        self.start_char = "{"
         self.active_child_key = None
 
     def __getitem__(self, key):
