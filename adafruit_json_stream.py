@@ -41,9 +41,15 @@ class _IterToStream:
         return char
 
     def fast_forward(self, closer, *, return_object=False):
-        """Read through the stream until the character is ``closer``, ``]``
+        """
+        Read through the stream until the character is ``closer``, ``]``
         (ending a list) or ``}`` (ending an object.) Intermediate lists and
-        objects are skipped."""
+        objects are skipped.
+
+        :param str closer: the character to read until
+        :param bool return_object: read until the closer,
+          and then parse the data and return as an object
+        """
 
         closer = ord(closer)
         close_stack = [closer]
