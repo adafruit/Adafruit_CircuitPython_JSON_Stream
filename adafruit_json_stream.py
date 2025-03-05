@@ -239,6 +239,41 @@ class TransientObject(Transient):
             self.done = self.data.fast_forward(",")
         raise KeyError(key)
 
+    def __iter__(self):
+        return self
+
+    def _next_item(self):
+        """Return the next item as a (key, value) pair, regardless of key."""
+        if self.active_child:
+            self.active_child.finish()
+            self.done = self.data.fast_forward(",")
+            self.active_child = None
+        if self.done:
+            raise StopIteration()
+
+        current_key = self.data.next_value(":")
+        if current_key is None:
+            self.done = True
+            raise StopIteration()
+
+        next_value = self.data.next_value(",")
+        if self.data.last_char == ord("}"):
+            self.done = True
+        if isinstance(next_value, Transient):
+            self.active_child = next_value
+        return (current_key, next_value)
+
+    def __next__(self):
+        return self._next_item()[0]
+
+    def items(self):
+        """Return iterator ine the dictionary’s items ((key, value) pairs)."""
+        try:
+            while not self.done:
+                yield self._next_item()
+        except StopIteration:
+            return
+
 
 def load(data_iter):
     """Returns an object to represent the top level of the given JSON stream."""
