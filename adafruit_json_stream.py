@@ -26,6 +26,7 @@ class _IterToStream:
         self.data_iter = data_iter
         self.i = 0
         self.chunk = b""
+        self.last_char = None
 
     def read(self):
         """Read the next character from the stream."""
@@ -39,16 +40,37 @@ class _IterToStream:
         self.i += 1
         return char
 
-    def fast_forward(self, closer):
-        """Read through the stream until the character is ``closer``, ``]``
+    def fast_forward(self, closer, *, return_object=False):
+        """
+        Read through the stream until the character is ``closer``, ``]``
         (ending a list) or ``}`` (ending an object.) Intermediate lists and
-        objects are skipped."""
+        objects are skipped.
+
+        :param str closer: the character to read until
+        :param bool return_object: read until the closer,
+          and then parse the data and return as an object
+        """
+
         closer = ord(closer)
         close_stack = [closer]
         count = 0
+
+        buffer = None
+        if return_object:
+            buffer = bytearray(32)
+            # ] = 93, [ = 91
+            # } = 125, { = 123
+            buffer[0] = closer - 2
+
         while close_stack:
             char = self.read()
             count += 1
+            if buffer:
+                if count == len(buffer):
+                    new_buffer = bytearray(len(buffer) + 32)
+                    new_buffer[: len(buffer)] = buffer
+                    buffer = new_buffer
+                buffer[count] = char
             if char == close_stack[-1]:
                 close_stack.pop()
             elif char == ord('"'):
@@ -63,6 +85,9 @@ class _IterToStream:
                 close_stack.append(ord("}"))
             elif char == ord("["):
                 close_stack.append(ord("]"))
+        if buffer:
+            value_string = bytes(memoryview(buffer)[: count + 1]).decode("utf-8")
+            return json.loads(value_string)
         return False
 
     def next_value(self, endswith=None):
@@ -77,10 +102,10 @@ class _IterToStream:
             except EOFError:
                 char = endswith
             if not in_string and (char == endswith or char in (ord("]"), ord("}"))):
+                self.last_char = char
                 if len(buf) == 0:
                     return None
                 value_string = bytes(buf).decode("utf-8")
-                # print(f"{repr(value_string)}, {endswith=}")
                 return json.loads(value_string)
             if char == ord("{"):
                 return TransientObject(self)
@@ -94,19 +119,15 @@ class _IterToStream:
             buf.append(char)
 
 
-class Transient:  # pylint: disable=too-few-public-methods
+class Transient:
     """Transient object representing a JSON object."""
 
-    # This is helpful for checking that something is a TransientList or TransientObject.
-
-
-class TransientList(Transient):
-    """Transient object that acts like a list through the stream."""
-
     def __init__(self, stream):
+        self.active_child = None
         self.data = stream
         self.done = False
-        self.active_child = None
+        self.has_read = False
+        self.finish_char = ""
 
     def finish(self):
         """Consume all of the characters for this list from the stream."""
@@ -114,13 +135,31 @@ class TransientList(Transient):
             if self.active_child:
                 self.active_child.finish()
                 self.active_child = None
-            self.data.fast_forward("]")
+            self.data.fast_forward(self.finish_char)
         self.done = True
+
+    def as_object(self):
+        """Consume all of the characters for this list from the stream and return as an object."""
+        if self.has_read:
+            raise BufferError("Object has already been partly read.")
+
+        self.done = True
+        return self.data.fast_forward(self.finish_char, return_object=True)
+
+
+class TransientList(Transient):
+    """Transient object that acts like a list through the stream."""
+
+    def __init__(self, stream):
+        super().__init__(stream)
+        self.finish_char = "]"
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        self.has_read = True
+
         if self.active_child:
             self.active_child.finish()
             self.done = self.data.fast_forward(",")
@@ -128,6 +167,8 @@ class TransientList(Transient):
         if self.done:
             raise StopIteration()
         next_value = self.data.next_value(",")
+        if self.data.last_char == ord("]"):
+            self.done = True
         if next_value is None:
             self.done = True
             raise StopIteration()
@@ -140,42 +181,39 @@ class TransientObject(Transient):
     """Transient object that acts like a dictionary through the stream."""
 
     def __init__(self, stream):
-        self.data = stream
-        self.done = False
-        self.buf = array.array("B")
-
-        self.active_child = None
-
-    def finish(self):
-        """Consume all of the characters for this object from the stream."""
-        if not self.done:
-            if self.active_child:
-                self.active_child.finish()
-                self.active_child = None
-            self.data.fast_forward("}")
-        self.done = True
+        super().__init__(stream)
+        self.finish_char = "}"
+        self.active_child_key = None
 
     def __getitem__(self, key):
+        if self.active_child and self.active_child_key == key:
+            return self.active_child
+
+        self.has_read = True
+
         if self.active_child:
             self.active_child.finish()
             self.done = self.data.fast_forward(",")
             self.active_child = None
+            self.active_child_key = None
         if self.done:
-            raise KeyError()
+            raise KeyError(key)
 
-        while True:
+        while not self.done:
             current_key = self.data.next_value(":")
             if current_key is None:
-                # print("object done", self)
                 self.done = True
                 break
             if current_key == key:
                 next_value = self.data.next_value(",")
+                if self.data.last_char == ord("}"):
+                    self.done = True
                 if isinstance(next_value, Transient):
                     self.active_child = next_value
+                    self.active_child_key = key
                 return next_value
-            self.data.fast_forward(",")
-        raise KeyError()
+            self.done = self.data.fast_forward(",")
+        raise KeyError(key)
 
 
 def load(data_iter):
