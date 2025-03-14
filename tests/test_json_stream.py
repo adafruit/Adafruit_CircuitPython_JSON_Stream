@@ -67,6 +67,38 @@ def dict_with_all_types():
 
 
 @pytest.fixture
+def list_with_bad_strings():
+    return r"""
+    [
+        "\"}\"",
+        "{\"a\": 1, \"b\": [2,3]}",
+        "\"",
+        "\\\"",
+        "\\\\\"",
+        "\\x40\"",
+        "[[[{{{",
+        "]]]}}}"
+    ]
+    """
+
+
+@pytest.fixture
+def dict_with_bad_strings():
+    return r"""
+    {
+        "1": "\"}\"",
+        "2": "{\"a\": 1, \"b\": [2,3]}",
+        "3": "\"",
+        "4": "\\\"",
+        "5": "\\\\\"",
+        "6": "\\x40\"",
+        "7": "[[[{{{",
+        "8": "]]]}}}"
+    }
+    """
+
+
+@pytest.fixture
 def list_with_values():
     return """
     [
@@ -306,6 +338,116 @@ def test_complex_dict(complex_dict):
 
     assert counter == 4
     assert sub_counter == 12
+
+
+def test_bad_strings_in_list(list_with_bad_strings):
+    """Test loading different strings that can confuse the parser."""
+
+    bad_strings = [
+        '"}"',
+        '{"a": 1, "b": [2,3]}',
+        '"',
+        '\\"',
+        '\\\\"',
+        '\\x40"',
+        "[[[{{{",
+        "]]]}}}",
+    ]
+
+    assert json.loads(list_with_bad_strings)
+
+    # get each separately
+    stream = adafruit_json_stream.load(BytesChunkIO(list_with_bad_strings.encode()))
+    for i, item in enumerate(stream):
+        assert item == bad_strings[i]
+
+
+def test_bad_strings_in_list_iter(list_with_bad_strings):
+    """Test loading different strings that can confuse the parser."""
+
+    bad_strings = [
+        '"}"',
+        '{"a": 1, "b": [2,3]}',
+        '"',
+        '\\"',
+        '\\\\"',
+        '\\x40"',
+        "[[[{{{",
+        "]]]}}}",
+    ]
+
+    assert json.loads(list_with_bad_strings)
+
+    # get each separately
+    stream = adafruit_json_stream.load(BytesChunkIO(list_with_bad_strings.encode()))
+    for i, item in enumerate(stream):
+        assert item == bad_strings[i]
+
+
+def test_bad_strings_in_dict_as_object(dict_with_bad_strings):
+    """Test loading different strings that can confuse the parser."""
+
+    bad_strings = {
+        "1": '"}"',
+        "2": '{"a": 1, "b": [2,3]}',
+        "3": '"',
+        "4": '\\"',
+        "5": '\\\\"',
+        "6": '\\x40"',
+        "7": "[[[{{{",
+        "8": "]]]}}}",
+    }
+
+    # read all at once
+    stream = adafruit_json_stream.load(BytesChunkIO(dict_with_bad_strings.encode()))
+    assert stream.as_object() == bad_strings
+
+
+def test_bad_strings_in_dict_all_keys(dict_with_bad_strings):
+    """Test loading different strings that can confuse the parser."""
+
+    bad_strings = {
+        "1": '"}"',
+        "2": '{"a": 1, "b": [2,3]}',
+        "3": '"',
+        "4": '\\"',
+        "5": '\\\\"',
+        "6": '\\x40"',
+        "7": "[[[{{{",
+        "8": "]]]}}}",
+    }
+
+    # read one after the other with keys
+    stream = adafruit_json_stream.load(BytesChunkIO(dict_with_bad_strings.encode()))
+    assert stream["1"] == bad_strings["1"]
+    assert stream["2"] == bad_strings["2"]
+    assert stream["3"] == bad_strings["3"]
+    assert stream["4"] == bad_strings["4"]
+    assert stream["5"] == bad_strings["5"]
+    assert stream["6"] == bad_strings["6"]
+    assert stream["7"] == bad_strings["7"]
+    assert stream["8"] == bad_strings["8"]
+
+
+def test_bad_strings_in_dict_skip_some(dict_with_bad_strings):
+    """Test loading different strings that can confuse the parser."""
+
+    bad_strings = {
+        "1": '"}"',
+        "2": '{"a": 1, "b": [2,3]}',
+        "3": '"',
+        "4": '\\"',
+        "5": '\\\\"',
+        "6": '\\x40"',
+        "7": "[[[{{{",
+        "8": "]]]}}}",
+    }
+
+    # read some, skip some
+    stream = adafruit_json_stream.load(BytesChunkIO(dict_with_bad_strings.encode()))
+    assert stream["2"] == bad_strings["2"]
+    assert stream["5"] == bad_strings["5"]
+    assert stream["8"] == bad_strings["8"]
 
 
 def test_complex_dict_grabbing(complex_dict):

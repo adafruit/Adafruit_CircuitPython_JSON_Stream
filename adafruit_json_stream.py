@@ -40,7 +40,9 @@ class _IterToStream:
         self.i += 1
         return char
 
-    def fast_forward(self, closer, *, return_object=False):
+    def fast_forward(
+        self, closer, *, return_object=False
+    ):  # pylint: disable=too-many-branches
         """
         Read through the stream until the character is ``closer``, ``]``
         (ending a list) or ``}`` (ending an object.) Intermediate lists and
@@ -62,6 +64,7 @@ class _IterToStream:
             # } = 125, { = 123
             buffer[0] = closer - 2
 
+        ignore_next = False
         while close_stack:
             char = self.read()
             count += 1
@@ -71,8 +74,14 @@ class _IterToStream:
                     new_buffer[: len(buffer)] = buffer
                     buffer = new_buffer
                 buffer[count] = char
-            if char == close_stack[-1]:
+            if ignore_next:
+                # that character was escaped, skip it
+                ignore_next = False
+            elif char == close_stack[-1]:
                 close_stack.pop()
+            elif char == ord("\\") and close_stack[-1] == ord('"'):
+                # if backslash, ignore the next character
+                ignore_next = True
             elif char == ord('"'):
                 close_stack.append(ord('"'))
             elif close_stack[-1] == ord('"'):
@@ -96,26 +105,41 @@ class _IterToStream:
         if isinstance(endswith, str):
             endswith = ord(endswith)
         in_string = False
+        ignore_next = False
         while True:
             try:
                 char = self.read()
             except EOFError:
                 char = endswith
-            if not in_string and (char == endswith or char in (ord("]"), ord("}"))):
-                self.last_char = char
-                if len(buf) == 0:
-                    return None
-                value_string = bytes(buf).decode("utf-8")
-                return json.loads(value_string)
-            if char == ord("{"):
-                return TransientObject(self)
-            if char == ord("["):
-                return TransientList(self)
+                in_string = False
+                ignore_next = False
 
             if not in_string:
-                in_string = char == ord('"')
+                # end character or object/list end
+                if char == endswith or char in (ord("]"), ord("}")):
+                    self.last_char = char
+                    if len(buf) == 0:
+                        return None
+                    value_string = bytes(buf).decode("utf-8")
+                    return json.loads(value_string)
+                # string or sub object
+                if char == ord("{"):
+                    return TransientObject(self)
+                if char == ord("["):
+                    return TransientList(self)
+                # start a string
+                if char == ord('"'):
+                    in_string = True
             else:
-                in_string = char != ord('"')
+                # skipping any closing or opening character if in a string
+                # also skipping escaped characters (like quotes in string)
+                if ignore_next:
+                    ignore_next = False
+                elif char == ord("\\"):
+                    ignore_next = True
+                elif char == ord('"'):
+                    in_string = False
+
             buf.append(char)
 
 
