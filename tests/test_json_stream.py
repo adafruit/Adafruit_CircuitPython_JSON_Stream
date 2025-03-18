@@ -688,7 +688,7 @@ def test_as_object_grabbing_multiple_subscriptable_levels_again_after_passed_rai
 
 
 def test_iterating_keys(dict_with_keys):
-    """Iterate through keys of a simple object"""
+    """Iterate through keys of a simple object."""
 
     bytes_io_chunk = BytesChunkIO(dict_with_keys.encode())
     stream = adafruit_json_stream.load(bytes_io_chunk)
@@ -697,10 +697,29 @@ def test_iterating_keys(dict_with_keys):
 
 
 def test_iterating_items(dict_with_keys):
-    """Iterate through items of a simple object"""
+    """Iterate through items of a simple object."""
 
     bytes_io_chunk = BytesChunkIO(dict_with_keys.encode())
     stream = adafruit_json_stream.load(bytes_io_chunk)
     output = list(stream.items())
     assert output == [("field_1", 1), ("field_2", 2), ("field_3", 3)]
 
+
+def test_iterating_keys_after_get(dict_with_keys):
+    """Iterate through keys of a simple object after an item has already been read."""
+
+    bytes_io_chunk = BytesChunkIO(dict_with_keys.encode())
+    stream = adafruit_json_stream.load(bytes_io_chunk)
+    assert stream["field_1"] == 1
+    output = list(stream)
+    assert output == ["field_2", "field_3"]
+
+
+def test_iterating_items_after_get(dict_with_keys):
+    """Iterate through items of a simple object after an item has already been read."""
+
+    bytes_io_chunk = BytesChunkIO(dict_with_keys.encode())
+    stream = adafruit_json_stream.load(bytes_io_chunk)
+    assert stream["field_1"] == 1
+    output = list(stream.items())
+    assert output == [("field_2", 2), ("field_3", 3)]
