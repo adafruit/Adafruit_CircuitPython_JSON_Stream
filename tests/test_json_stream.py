@@ -696,6 +696,18 @@ def test_iterating_keys(dict_with_keys):
     assert output == ["field_1", "field_2", "field_3"]
 
 
+def test_iterating_keys_get(dict_with_keys):
+    """Iterate through keys of a simple object and get values."""
+
+    the_dict = json.loads(dict_with_keys)
+
+    bytes_io_chunk = BytesChunkIO(dict_with_keys.encode())
+    stream = adafruit_json_stream.load(bytes_io_chunk)
+    for key in stream:
+        value = stream[key]
+        assert value == the_dict[key]
+
+
 def test_iterating_items(dict_with_keys):
     """Iterate through items of a simple object."""
 
@@ -723,3 +735,28 @@ def test_iterating_items_after_get(dict_with_keys):
     assert stream["field_1"] == 1
     output = list(stream.items())
     assert output == [("field_2", 2), ("field_3", 3)]
+
+
+def test_iterating_complex_dict(complex_dict):
+    """Mix iterating over items of objects in objects in arrays."""
+
+    names = ["one", "two", "three", "four"]
+    sub_values = [None, "two point one", "three point one", None]
+
+    stream = adafruit_json_stream.load(BytesChunkIO(complex_dict.encode()))
+
+    thing_num = 0
+    for (index, item) in enumerate(stream.items()):
+        key, a_list = item
+        assert key == f"list_{index+1}"
+        for thing in a_list:
+            assert thing["dict_name"] == names[thing_num]
+            for sub_key in thing["sub_dict"]:
+                # break after getting a key with or without the value
+                # (testing finish() called from the parent list)
+                if sub_key == "sub_dict_name":
+                    if thing_num in {1, 2}:
+                        value = thing["sub_dict"][sub_key]
+                        assert value == sub_values[thing_num]
+                    break
+            thing_num += 1

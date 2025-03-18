@@ -154,7 +154,7 @@ class Transient:
         self.finish_char = ""
 
     def finish(self):
-        """Consume all of the characters for this list from the stream."""
+        """Consume all of the characters for this container from the stream."""
         if not self.done:
             if self.active_child:
                 self.active_child.finish()
@@ -163,7 +163,8 @@ class Transient:
         self.done = True
 
     def as_object(self):
-        """Consume all of the characters for this list from the stream and return as an object."""
+        """Consume all of the characters for this container from the stream
+        and return as an object."""
         if self.has_read:
             raise BufferError("Object has already been partly read.")
 
@@ -207,10 +208,17 @@ class TransientObject(Transient):
     def __init__(self, stream):
         super().__init__(stream)
         self.finish_char = "}"
-        self.active_child_key = None
+        self.active_key = None
+
+    def finish(self):
+        """Consume all of the characters for this container from the stream."""
+        if self.active_key and not self.active_child:
+            self.done = self.data.fast_forward(",")
+            self.active_key = None
+        super().finish()
 
     def __getitem__(self, key):
-        if self.active_child and self.active_child_key == key:
+        if self.active_child and self.active_key == key:
             return self.active_child
 
         self.has_read = True
@@ -219,12 +227,16 @@ class TransientObject(Transient):
             self.active_child.finish()
             self.done = self.data.fast_forward(",")
             self.active_child = None
-            self.active_child_key = None
+            self.active_key = None
         if self.done:
             raise KeyError(key)
 
         while not self.done:
-            current_key = self.data.next_value(":")
+            if self.active_key:
+                current_key = self.active_key
+                self.active_key = None
+            else:
+                current_key = self.data.next_value(":")
             if current_key is None:
                 self.done = True
                 break
@@ -234,7 +246,7 @@ class TransientObject(Transient):
                     self.done = True
                 if isinstance(next_value, Transient):
                     self.active_child = next_value
-                    self.active_child_key = key
+                    self.active_key = key
                 return next_value
             self.done = self.data.fast_forward(",")
         raise KeyError(key)
@@ -242,35 +254,36 @@ class TransientObject(Transient):
     def __iter__(self):
         return self
 
-    def _next_item(self):
-        """Return the next item as a (key, value) pair, regardless of key."""
-        if self.active_child:
-            self.active_child.finish()
+    def _next_key(self):
+        """Return the next item's key, without consuming the value."""
+        if self.active_key:
+            if self.active_child:
+                self.active_child.finish()
+                self.active_child = None
             self.done = self.data.fast_forward(",")
-            self.active_child = None
+            self.active_key = None
         if self.done:
             raise StopIteration()
+
+        self.has_read = True
 
         current_key = self.data.next_value(":")
         if current_key is None:
             self.done = True
             raise StopIteration()
 
-        next_value = self.data.next_value(",")
-        if self.data.last_char == ord("}"):
-            self.done = True
-        if isinstance(next_value, Transient):
-            self.active_child = next_value
-        return (current_key, next_value)
+        self.active_key = current_key
+        return current_key
 
     def __next__(self):
-        return self._next_item()[0]
+        return self._next_key()
 
     def items(self):
-        """Return iterator ine the dictionary’s items ((key, value) pairs)."""
+        """Return iterator in the dictionary’s items ((key, value) pairs)."""
         try:
             while not self.done:
-                yield self._next_item()
+                key = self._next_key()
+                yield (key, self[key])
         except StopIteration:
             return
 
