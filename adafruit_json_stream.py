@@ -128,6 +128,9 @@ class _IterToStream:
                 # start a string
                 if char == ord('"'):
                     in_string = True
+
+            # skipping any closing or opening character if in a string
+            # also skipping escaped characters (like quotes in string)
             elif ignore_next:
                 ignore_next = False
             elif char == ord("\\"):
