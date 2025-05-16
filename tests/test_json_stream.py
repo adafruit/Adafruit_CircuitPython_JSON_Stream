@@ -4,12 +4,10 @@
 
 import json
 import math
+
 import pytest
+
 import adafruit_json_stream
-
-
-# pylint: disable=invalid-name,pointless-statement,redefined-outer-name
-
 
 # ---------------
 # Helpers
@@ -286,9 +284,7 @@ def test_dict_with_list_of_single_entries(dict_with_list_with_single_entries):
 
     assert json.loads(dict_with_list_with_single_entries)
 
-    stream = adafruit_json_stream.load(
-        BytesChunkIO(dict_with_list_with_single_entries.encode())
-    )
+    stream = adafruit_json_stream.load(BytesChunkIO(dict_with_list_with_single_entries.encode()))
     counter = 0
     for obj in stream["list_1"]:
         counter += 1
@@ -538,9 +534,7 @@ def test_complex_dict_buffer_sizes(chunk_size, complex_dict, expected_chunks):
 
 
 # complex_dict is 1518 bytes
-@pytest.mark.parametrize(
-    ("chunk_size", "expected_chunks"), ((5, 61), (10, 31), (50, 7), (100, 4))
-)
+@pytest.mark.parametrize(("chunk_size", "expected_chunks"), ((5, 61), (10, 31), (50, 7), (100, 4)))
 def test_complex_dict_not_looking_at_all_data_buffer_sizes(
     chunk_size, complex_dict, expected_chunks
 ):
@@ -616,7 +610,6 @@ def test_as_object(complex_dict):
 
 
 def test_as_object_stream(dict_with_all_types):
-
     assert json.loads(dict_with_all_types)
 
     stream = adafruit_json_stream.load(BytesChunkIO(dict_with_all_types.encode()))
@@ -746,7 +739,7 @@ def test_iterating_complex_dict(complex_dict):
     stream = adafruit_json_stream.load(BytesChunkIO(complex_dict.encode()))
 
     thing_num = 0
-    for (index, item) in enumerate(stream.items()):
+    for index, item in enumerate(stream.items()):
         key, a_list = item
         assert key == f"list_{index+1}"
         for thing in a_list:
