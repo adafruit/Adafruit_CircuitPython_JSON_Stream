@@ -5,9 +5,11 @@
 
 import ssl
 import time
+
 import adafruit_requests
 import socketpool
 import wifi
+
 import adafruit_json_stream as json_stream
 
 pool = socketpool.SocketPool(wifi.radio)

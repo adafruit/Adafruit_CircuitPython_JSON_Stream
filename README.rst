@@ -17,9 +17,9 @@ Introduction
     :alt: Build Status
 
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
-    :alt: Code Style: Black
+.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Code Style: Ruff
 
 
 This library is a reimplementation and subset of `json_stream <https://github.com/daggaz/json-stream>`_. It enables reading JSON data from a stream rather that loading it all into memory at once. The interface works like lists and dictionaries that are usually returned from ``json.load()`` but require in-order access. Out of order accesses will lead to missing keys and list entries.

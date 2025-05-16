@@ -40,9 +40,7 @@ class _IterToStream:
         self.i += 1
         return char
 
-    def fast_forward(
-        self, closer, *, return_object=False
-    ):  # pylint: disable=too-many-branches
+    def fast_forward(self, closer, *, return_object=False):
         """
         Read through the stream until the character is ``closer``, ``]``
         (ending a list) or ``}`` (ending an object.) Intermediate lists and
@@ -87,7 +85,7 @@ class _IterToStream:
             elif close_stack[-1] == ord('"'):
                 # in a string so ignore [] and {}
                 pass
-            elif char in (ord("}"), ord("]")):
+            elif char in {ord("}"), ord("]")}:
                 # Mismatched list or object means we're done and already past the last comma.
                 return True
             elif char == ord("{"):
@@ -116,7 +114,7 @@ class _IterToStream:
 
             if not in_string:
                 # end character or object/list end
-                if char == endswith or char in (ord("]"), ord("}")):
+                if char == endswith or char in {ord("]"), ord("}")}:
                     self.last_char = char
                     if len(buf) == 0:
                         return None
@@ -130,15 +128,12 @@ class _IterToStream:
                 # start a string
                 if char == ord('"'):
                     in_string = True
-            else:
-                # skipping any closing or opening character if in a string
-                # also skipping escaped characters (like quotes in string)
-                if ignore_next:
-                    ignore_next = False
-                elif char == ord("\\"):
-                    ignore_next = True
-                elif char == ord('"'):
-                    in_string = False
+            elif ignore_next:
+                ignore_next = False
+            elif char == ord("\\"):
+                ignore_next = True
+            elif char == ord('"'):
+                in_string = False
 
             buf.append(char)
 

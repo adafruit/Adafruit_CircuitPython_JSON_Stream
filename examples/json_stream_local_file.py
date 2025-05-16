@@ -18,7 +18,7 @@ class FakeResponse:
             yield self.file.read(chunk_size)
 
 
-f = open(sys.argv[1], "rb")  # pylint: disable=consider-using-with
+f = open(sys.argv[1], "rb")
 obj = json_stream.load(FakeResponse(f).iter_content(32))
 
 currently = obj["currently"]
