@@ -12,7 +12,7 @@ requires = [
 
 [project]
 name = "adafruit-circuitpython-json-stream"
-description = ""
+description = "Minimal reimplementation of json-stream for CircuitPython"
 version = "0.0.0+auto.0"
 readme = "README.rst"
 authors = [
