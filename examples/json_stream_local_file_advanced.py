@@ -75,9 +75,9 @@ for i, day in enumerate(obj["daily"]["data"]):
     day_items = find_keys(day, ("time", "summary", "temperatureHigh"))
     date = time_to_date(day_items["time"])
     print(
-        f'On {date}: {day_items["summary"]},',
-        f'Max: {int(day_items["temperatureHigh"])}F',
-        f'({int(ftoc(day_items["temperatureHigh"]))}C)',
+        f"On {date}: {day_items['summary']},",
+        f"Max: {int(day_items['temperatureHigh'])}F",
+        f"({int(ftoc(day_items['temperatureHigh']))}C)",
     )
 
     if i > 4:

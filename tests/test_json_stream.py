@@ -313,7 +313,7 @@ def test_complex_dict(complex_dict):
         assert obj["dict_name"] == dict_names[counter - 1]
         sub_dict = obj["sub_dict"]
         assert sub_dict["sub_dict_id"] == counter + 0.1
-        assert sub_dict["sub_dict_name"] == f"{dict_names[counter-1]} point one"
+        assert sub_dict["sub_dict_name"] == f"{dict_names[counter - 1]} point one"
         for item in obj["sub_list"]:
             sub_counter += 1
             assert item == chr(96 + sub_counter)
@@ -327,7 +327,7 @@ def test_complex_dict(complex_dict):
         assert obj["dict_name"] == dict_names[counter - 1]
         sub_dict = obj["sub_dict"]
         assert sub_dict["sub_dict_id"] == counter + 0.1
-        assert sub_dict["sub_dict_name"] == f"{dict_names[counter-1]} point one"
+        assert sub_dict["sub_dict_name"] == f"{dict_names[counter - 1]} point one"
         for item in obj["sub_list"]:
             sub_counter += 1
             assert item == chr(96 + sub_counter)
@@ -741,7 +741,7 @@ def test_iterating_complex_dict(complex_dict):
     thing_num = 0
     for index, item in enumerate(stream.items()):
         key, a_list = item
-        assert key == f"list_{index+1}"
+        assert key == f"list_{index + 1}"
         for thing in a_list:
             assert thing["dict_name"] == names[thing_num]
             for sub_key in thing["sub_dict"]:
